@@ -22,7 +22,7 @@ type Run struct {
 	Config    workload.Config `json:"config"`
 	Faults    []nemesis.Fault `json:"faults"`
 	Check     checker.Result  `json:"check"`
-	Errors    map[string]int  `json:"errors"`    // failed/indeterminate ops by error class
+	Errors    map[string]int  `json:"errors"` // failed/indeterminate ops by error class
 	PerSecond []Second        `json:"per_second"`
 }
 
