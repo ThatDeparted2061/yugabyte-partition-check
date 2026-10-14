@@ -1,0 +1,43 @@
+# Three-node YugabyteDB cluster, replication factor 3, one node per "zone".
+# make demo brings it up, runs the harness against it, and tears it down.
+x-yb: &yb
+  image: yugabytedb/yugabyte:${YB_VERSION:-2025.2.7.0-b107}
+  restart: "no" # the harness kills and restarts nodes itself
+  healthcheck:
+    test: ["CMD-SHELL", "/home/yugabyte/postgres/bin/pg_isready -h $$(hostname) -p 5433"]
+    interval: 3s
+    timeout: 3s
+    retries: 60
+  networks: [yb]
+
+services:
+  yb1:
+    <<: *yb
+    container_name: yb1
+    hostname: yb1
+    command: ["bin/yugabyted", "start", "--background=false", "--advertise_address=yb1", "--cloud_location=docker.region.zone1", "--fault_tolerance=zone"]
+    ports: ["5433:5433", "7000:7000", "15433:15433"]
+
+  yb2:
+    <<: *yb
+    container_name: yb2
+    hostname: yb2
+    command: ["bin/yugabyted", "start", "--background=false", "--advertise_address=yb2", "--join=yb1", "--cloud_location=docker.region.zone2", "--fault_tolerance=zone"]
+    ports: ["5434:5433"]
+    depends_on:
+      yb1:
+        condition: service_healthy
+
+  yb3:
+    <<: *yb
+    container_name: yb3
+    hostname: yb3
+    command: ["bin/yugabyted", "start", "--background=false", "--advertise_address=yb3", "--join=yb1", "--cloud_location=docker.region.zone3", "--fault_tolerance=zone"]
+    ports: ["5435:5433"]
+    depends_on:
+      yb2:
+        condition: service_healthy
+
+networks:
+  yb:
+    name: yb
